@@ -1,4 +1,4 @@
-from typing import Any, List, Union
+from typing import Any, List, Union, Optional
 from uuid import UUID
 # import uuid
 from datetime import datetime
@@ -24,20 +24,21 @@ class Auth(BaseModel):
 class Server(BaseModel):
     uuid: UUID
     name: str
-    description: str
-    countryISO: str
+    description: Optional[str] = None 
+    countryISO: Optional[str] = None 
     type: str
+    nft: str
 
     class Config:
         orm_mode = True
         getter_dict = PeeweeGetterDict
 
 class Session(BaseModel):
-    user_id: UUID
     uuid: UUID
     started_at: datetime
+    address: str
     state: str
-    end_at: UUID
+    # end_at: datetime
 
     class Config:
         orm_mode = True
@@ -83,5 +84,10 @@ class Subscription(BaseModel):
             datetime: convert_datetime_to_iso_8601_with_z_suffix
         }
 
-class Token(BaseModel):
+class SessionStart(BaseModel):
     vpn_token: str
+    address: str
+
+class SessionEnd(BaseModel):
+    vpn_token: str
+    address: str

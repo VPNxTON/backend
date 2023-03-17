@@ -19,8 +19,6 @@ class PeeweeConnectionState(peewee._ConnectionState):
         return self._state.get()[name]
 
 
-# db = peewee.SqliteDatabase(DATABASE_NAME, check_same_thread=False)
-
 db = peewee.PostgresqlDatabase(database=DBDATABASE, user=DBUSER, password=DBPASSWORD, host=DBHOST, autorollback=True)
 
 db._state = PeeweeConnectionState()

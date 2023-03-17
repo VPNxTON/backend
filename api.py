@@ -3,6 +3,7 @@ from typing import List
 import logging
 from typing import Optional
 from fastapi import Depends, FastAPI, HTTPException, UploadFile, File, Header
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 
 import io
@@ -19,13 +20,27 @@ from security import check_session
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.ERROR)
 
 logger = logging.getLogger("api")
+origins = [
+    "http://localhost:3000",
+    "https://vpnxton.def.team",
+    "*"
+]
 
-app = FastAPI()
+app = FastAPI(openapi_url="/api/openapi.json")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 async def reset_db_state():
-    database.db._state._state.set(db_state_default.copy())
-    database.db._state.reset()
-
+    # database.db._state._state.set(db_state_default.copy())
+    # database.db._state.reset()
+    pass
 
 def get_db(db_state=Depends(reset_db_state)):
     try:
@@ -54,7 +69,7 @@ def auth(wallet: schemas.Auth):
 def connect(address: str, user:  schemas.User = Depends(check_session)):
     server = crud.get_server(address)
     token = user.generate_vpn_token()
-    data = server.raw_config + f"<auth-token>\n{token}\n</auth-token>"
+    data = server.raw_config + f"\n<auth-user-pass>\n{user.wallet}\n{token}\n</auth-user-pass>"
     return Response(content=data, media_type="text/*")
 
 
@@ -65,15 +80,12 @@ def connect(address: str, user:  schemas.User = Depends(check_session)):
 def add_request(request: schemas.ServerRequest, user:  schemas.User = Depends(check_session)):
     return crud.get_or_create_request(request, user)
 
-# @app.get(
-#     "/api/servers", include_in_schema=True, response_model=List[schemas.Server], dependencies=[Depends(get_db), Depends(check_session)]
-# )
-# def get_servers(listType: Optional[int] = 1):
-#     if listType:
-#         request = crud.get_servers(listType)
-#     else:
-#         request = crud.get_servers()
-#     return request
+@app.get(
+    "/api/servers", include_in_schema=True, response_model=List[schemas.Server], dependencies=[Depends(get_db)]
+)
+def get_servers():
+    request = crud.list_servers()
+    return request
 
 ########SESSION###############
 @app.get(
@@ -87,32 +99,19 @@ def session_list(user:  schemas.User = Depends(check_session)):
 
 # TODO: добавить проверку подписки, добавить проверку заголовковков
 @app.post(
-    "/api/session/start", include_in_schema=True,
+    "/api/session/start", include_in_schema=False,
     dependencies=[Depends(get_db)]
 )
-def session_start(request: schemas.Token):
-    user = User.get_or_none(vpn_token=request.vpn_token)
-    if not user:
-        return HTMLResponse(status_code=304)
-    else:
-        models.Session.create(user_id=user.uuid)
-    response = JSONResponse(content={'status': 'connected'})
-    return response
+def session_start(request: schemas.SessionStart):
+    return crud.session_start(request)
 
 # TODO: добавить проверку подписки, добавить проверку заголовковков
 @app.post(
-    "/api/session/end", include_in_schema=True,
+    "/api/session/end", include_in_schema=False,
     dependencies=[Depends(get_db)]
 )
-def session_end(request: schemas.Token):
-    user = User.get_or_none(vpn_token=request.vpn_token)
-
-    if not user:
-        return HTMLResponse(status_code=304)
-    else:
-        pass
-    sessions = crud.end_vpnsession(user)
-    response = JSONResponse(content={'status': 'closed'})
+def session_end(request: schemas.SessionEnd):
+    response = crud.end_vpnsession(request)
     return response
 
 ########SUBSCRIPTIONS###############

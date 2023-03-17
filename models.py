@@ -67,6 +67,7 @@ class Subscription(peewee.Model):
 
 class Session(peewee.Model):
     user_id = peewee.ForeignKeyField(User, backref="user")
+    address = peewee.CharField(null=False)
     uuid = peewee.UUIDField(primary_key=True, default=uuid.uuid4)
     started_at = peewee.DateTimeField(null=False, default=datetime.datetime.now)
     state = peewee.CharField(null=False, default="start")

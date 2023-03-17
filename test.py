@@ -44,7 +44,7 @@ def test_session_start():
     wallet = 'EQD3kE1K40qprNb-3Ndfwm2D3u2UimvlFeUb7-srs_VwB62X'
     response = client.post("/api/auth/", json={"wallet": wallet})
     vpn_token = response.json()['vpn_token']
-    response = client.post("/api/session/start", json={"vpn_token": vpn_token})
+    response = client.post("/api/session/start", json={"vpn_token": vpn_token, "address":"test"})
     print(response.json())
     assert response.json()['status'] == 'connected'
 
@@ -53,14 +53,11 @@ def test_session_end():
     wallet = 'EQD3kE1K40qprNb-3Ndfwm2D3u2UimvlFeUb7-srs_VwB62X'
     response = client.post("/api/auth/", json={"wallet": wallet})
     vpn_token = response.json()['vpn_token']
-    response = client.post("/api/session/end", json={"vpn_token": vpn_token})
+    response = client.post("/api/session/end", json={"vpn_token": vpn_token, "address":"test"})
     print(response.json())
     assert response.json()['status'] == 'closed'
 
 
-# def test_session_list():
-#     wallet = 'EQD3kE1K40qprNb-3Ndfwm2D3u2UimvlFeUb7-srs_VwB62X'
-#     response = client.post("/api/auth/", json={"wallet": wallet})
-#     token = response.json()["token"]
-#     response = client.get("/api/user/{wallet}/subscriptions", headers={'Authorization': token})
-#     assert len(response.json()) >= 0
+def test_list_servers():
+    response = client.get("/api/servers")
+    assert len(response.json()) >= 0

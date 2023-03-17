@@ -23,6 +23,25 @@ def auth(wallet):
         detail=jsonable_encoder({"Need wallet or wallet doesn't exists"})
     )
 
+
+def session_start(request):
+    logging.info(request)
+    user = User.get_or_none(vpn_token=request.vpn_token)
+    if not user:
+        raise HTTPException(
+            status_code=403,
+            detail=jsonable_encoder({"error": "Wallet unknown"})
+        )
+    else:
+        Session.create(user_id=user.uuid, address=request.address)
+    response = JSONResponse(content={'status': 'connected'})
+    return response
+
+
+def list_servers():
+    return list(Server.select())
+
+
 def get_server(address):
     server = Server.get_or_none(nft=address)
     print(address)
@@ -60,21 +79,26 @@ def list_session(user):
     return list(sessions)
 
 
-def end_vpnsession(user):
+def end_vpnsession(request):
+    user = User.get_or_none(vpn_token=request.vpn_token)
+
+    if not user:
+        return HTMLResponse(status_code=304)
+
     sessions = Session.select().where((Session.user_id==user.uuid) & (Session.state=='start'))
     for session in sessions:
         session.state='end'
         session.end_at=datetime.now()
         session.save()
-    return sessions
+    response = JSONResponse(content={'status': 'closed'})
+    return response
 
-#TODO поставить заглушку
 def get_subscription(user: schemas.User):
     subscriptions = Subscription.select().where((Subscription.user_id==user.uuid) & \
         ((Subscription.expires_at>datetime.now()) | (Subscription.expires_at==None)) & \
         (Subscription.status=='active') 
         ).order_by(-Subscription.expires_at)
-    
+
     if len(subscriptions) > 0:
         subscription = subscriptions[0]
     else:
@@ -84,6 +108,4 @@ def get_subscription(user: schemas.User):
 
 def list_subscriptions(user: schemas.User):
     subscriptions = Subscription.select().where(Subscription.user_id == user.uuid).order_by(-Subscription.expires_at)
-    if len(subscriptions) == 0:
-        return HTMLResponse(status_code=304)
-    return subscriptions
+    return list(subscriptions)
